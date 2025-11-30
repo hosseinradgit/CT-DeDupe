@@ -1,0 +1,184 @@
+import streamlit as st
+import pandas as pd
+import re
+
+
+def RIS_To_DataFrame (ris_data):
+    tag_map = {
+    'TY': 'Reference_Type',
+    'TI': 'Title', 'T1': 'Title',
+    'AN': 'Acession_Number',
+    'AB': 'Abstract', 'N2': 'Abstract',
+    'AU': 'Author', 'A1': 'Author',
+    'JA': 'Source', 'SO': 'Source', 'JF':'Source',
+    'PY': 'Year', 'Y1': 'Year', 'YR':'Year',
+    'DO': 'DOI', 'DI': 'DOI',
+    'C3': 'Trial Source',
+    'M3': 'Note', 'CY': 'Note',
+    'KW':'Keywords',
+    'UR': 'URL',
+    'DB': 'Database',
+    'PT': 'Publication_Type'}
+    standard_columns = set(tag_map.values())
+    record_splitter = r'ER\s{2}-\s*'
+    line_parser = r'^([A-Z0-9]{2})\s{2}-\s+(.*)'
+    
+    parsed_records = []
+    ris_records = re.split(record_splitter, ris_data.strip())
+    for record_str in ris_records:
+        if not record_str.strip():
+            continue
+            
+        record_dict = {}
+        for line in record_str.strip().split('\n'):
+            match = re.search(line_parser, line.strip())
+            if match:
+                ris_tag = match.group(1).strip()
+                ris_value = match.group(2).strip()
+                standard_tag = tag_map.get(ris_tag)
+    
+                if standard_tag:
+                    if standard_tag in record_dict:
+                        record_dict[standard_tag] += f"; {ris_value}"
+                    else:
+                        record_dict[standard_tag] = ris_value
+        
+        parsed_records.append(record_dict)
+    df = pd.DataFrame(parsed_records, columns=sorted(list(standard_columns)))
+    object_cols = df.select_dtypes(include=['object']).columns
+    df[object_cols] = df[object_cols].where(pd.notna, None)
+    df['Author'] = df['Author'].str.rstrip(',')
+    # st.write(f"🎉 Successfully parsed **{len(parsed_records)}** records.")
+    
+    return df
+
+
+def CENTRAL_Parse (data):
+    m3_pattern = re.compile(r'M3\s+-\s+Trial registry record', re.MULTILINE)
+    a1_pattern = re.compile(r'A1\s+-\s+(.*)', re.MULTILINE)
+    try:
+        central = data.split("ER  -")[:-1]
+        st.write(f"🎉 Successfully parsed **{len(central)}** records.")               
+        CENTRAL_Dataframe = RIS_To_DataFrame (data)
+        CENTRAL_Dataframe['Note'] = CENTRAL_Dataframe['Note'].str.strip()
+        CENTRAL_Dataframe['Note'] = CENTRAL_Dataframe['Note'].str.lower()
+        central_ids = []
+        for idx,record in enumerate(CENTRAL_Dataframe['Note']):
+            if record == "trial registry record":
+                central_ids.append (CENTRAL_Dataframe['Author'][idx].strip())
+        if central_ids:
+            central_ids = list (set(central_ids))
+            filtered_CENTRAL_Dataframe = CENTRAL_Dataframe[CENTRAL_Dataframe['Author'].isin(central_ids)]
+            st.session_state['Central_IDs'] = central_ids
+            st.session_state['Central_df'] =  filtered_CENTRAL_Dataframe
+            st.write(f"🎉 Successfully identified **{len(central_ids)}** unique trial records.")
+            return filtered_CENTRAL_Dataframe           
+            
+        else:
+            st.warning("No trial records were identified. Please double check the uploaded data.")
+            # uploaded_ris_file1.seek(0) 
+    except Exception as e:
+        st.error(f"Error reading RIS file: {e}. Please check the uploaded data.")
+
+
+def Embase_Parse (data):
+    db_pattern = re.compile(r'DB\s+-\s+Embase Clinical Trials',re.MULTILINE)
+    an_pattern = re.compile(r'AN\s+-\s+(.*)', re.MULTILINE)
+    # create embase ids list
+    try:
+        embase = data.split("ER  -")[:-1]
+        st.write(f"🎉 Successfully parsed **{len(embase)}** records.")
+        EMBASE_Dataframe = RIS_To_DataFrame (data)
+        EMBASE_Dataframe['Database'] = EMBASE_Dataframe['Database'].str.strip()
+        EMBASE_Dataframe['Database'] = EMBASE_Dataframe['Database'].str.lower()
+        embase_ids = []
+        for idx,record in enumerate(EMBASE_Dataframe['Database']):
+            if record == "embase clinical trials":
+                embase_ids.append (EMBASE_Dataframe['Acession_Number'][idx].strip())
+        if embase_ids:
+            embase_ids = list (set(embase_ids))
+            filtered_EMBASE_Dataframe = EMBASE_Dataframe[EMBASE_Dataframe['Acession_Number'].isin(embase_ids)].reset_index(drop=True)
+            embase_urls = []
+            year_cleaned = []
+            for idx in range(len(filtered_EMBASE_Dataframe)):
+                url_splited = filtered_EMBASE_Dataframe['URL'][idx].split("; ")
+                if len (url_splited)>1:
+                    embase_urls.append (url_splited[0])
+                else:
+                    embase_urls.append (url_splited)
+            filtered_EMBASE_Dataframe['URL'] = embase_urls 
+            filtered_EMBASE_Dataframe['Year'] = filtered_EMBASE_Dataframe['Year'].str.rstrip('//')
+            st.session_state['Embase_IDs'] = embase_ids
+            st.session_state['Embase_df'] =  filtered_EMBASE_Dataframe
+            st.write(f"🎉 Successfully identified **{len(embase_ids)}** unique trial records.")
+            return filtered_EMBASE_Dataframe
+        else:
+            st.warning("No trial records were identified. Please double check the uploaded data.")
+    except Exception as e:
+        st.error(f"Error reading RIS file: {e}. Please check the uploaded data.")
+
+    
+
+def ClinicalTrialsGov_Parse (data):
+    try:
+        df_ct = data
+        ct_ids = []
+        for i in df_ct['NCT Number']:
+            ct_ids.append(str(i).strip())
+        ct_ids_final = list(set(ct_ids))
+        if ct_ids_final:
+            st.session_state['CT_IDs'] = ct_ids_final
+            st.session_state['CT_df'] =  df_ct
+            st.write(f"🎉 Successfully parsed **{(df_ct.shape[0])}** records.")
+            st.write(f"🎉 Successfully identified **{len(ct_ids_final)}** unique trial records.")
+            
+            return df_ct
+            
+        else:
+            st.warning("No trial records were identified from ClinicalTrials.gov.")
+    except Exception as e:
+        st.error(f"Error reading CSV file: {e}. Please check the uploaded data.")
+
+def WHO_ICTRP_Parse (data):
+    try:
+        df_ictrp = data
+        df_ictrp['TrialID'] = df_ictrp['TrialID'].str.strip()
+        # create ictrp ids list
+        ictrp_ids = []
+        for i in df_ictrp['TrialID']:
+            ictrp_ids.append(str(i).strip())
+        ictrp_ids_final = list(set(ictrp_ids))
+        if ictrp_ids_final:
+            st.session_state['ICTRP_IDs'] = ictrp_ids_final
+            st.session_state['ICTRP_df'] =  df_ictrp
+            st.write(f"🎉 Successfully parsed **{(df_ictrp.shape[0])}** records.")
+            st.write(f"🎉 Successfully identified **{len(ictrp_ids_final)}** unique trial records.")
+            return df_ictrp
+        else:
+            st.warning("No trial records were identified from WHO ICTRP.")
+            
+    except Exception as e:
+        st.error(f"Error reading XML file: {e}. Please check the uploaded data.")
+
+
+def ScanMedicine_Parse (data):
+    try:
+        df_scanmedicine = data
+        # create scanmedicine ids list
+        scanmedicine_ids = []
+        for i in df_scanmedicine['MainID']:
+            scanmedicine_ids.append(str(i).strip())
+        scanmedicine_ids_final = list(set(scanmedicine_ids))
+        if scanmedicine_ids_final:
+            st.session_state['SM_IDs'] = scanmedicine_ids_final
+            st.session_state['SM_df'] =  df_scanmedicine
+            st.write(f"🎉 Successfully parsed **{(df_scanmedicine.shape[0])}** records.")
+            st.write(f"🎉 Successfully identified **{len(scanmedicine_ids_final)}** unique trial records.")
+            return df_scanmedicine
+            
+        else:
+            st.warning("No trial records were identified from ScanMedicine.")
+    except Exception as e:
+        st.error(f"Error reading CSV file: {e}. Please check the uploaded data.")  
+        
+    
