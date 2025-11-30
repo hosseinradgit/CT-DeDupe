@@ -361,11 +361,19 @@ with st.sidebar:
                     # Apply a light red background to the entire row
                     return ['background-color: #ffe6e6'] * len(row)
                 return [''] * len(row)
-
-            styled_df = sorted_df.style.apply(color_priority, axis=1)
+            sliced_df = sorted_df.iloc[:100]
+            styled_df = sliced_df.style.apply(color_priority, axis=1)
             st.write(styled_df)
             st.session_state['sorted_df'] = sorted_df
-            
+            def convert_df_to_csv(df):
+                return df.to_csv(index=False).encode('utf-8')
+            dfs_to_download = convert_df_to_csv(sorted_df)
+            st.download_button(
+                label="Download Data",
+                data=dfs_to_download,
+                file_name='Duplicate Records.csv',
+                mime='text/csv')
+
 
     with tab4:
         if 'sorted_df' in st.session_state:
@@ -557,8 +565,8 @@ with tab2:
             data_source_name = "ScanMedicine"
     
         st.header(f"Previewing Data from: **{data_source_name}**")
-        
-        st.write(st.session_state[source_key])
+        data_to_show = st.session_state[source_key]
+        st.write(data_to_show.iloc[:100])
         
         # Add a button to clear the preview data
         st.button("Clear Preview", on_click=clear_preview, key="hide_preview_btn")
