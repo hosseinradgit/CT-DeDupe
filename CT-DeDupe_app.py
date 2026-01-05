@@ -293,7 +293,18 @@ with st.sidebar:
             central_subset['Source_Code'] = 1
             new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'Database','Source_Code']
             central_subset = central_subset[new_order]
-            dfs.append (central_subset)           
+            dfs.append (central_subset)  
+
+        if isinstance(embase, pd.DataFrame):
+            embase_subset = embase[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number', 'Source','Volume','Issue']]
+            # embase_subset = embase_subset.rename(columns={'Acession_Number': 'Trial_ID'})
+            embase_subset['Trial_ID'] = embase['Acession_Number'].str.strip()
+            embase_subset['Database'] = 'EMBASE'
+            embase_subset['Source_Code'] = 2
+            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'Database','Source_Code']
+            embase_subset = embase_subset[new_order]
+            # st.write(embase_subset)
+            dfs.append (embase_subset)
         
         if isinstance(ct, pd.DataFrame):
             ct['NCT Number'] = ct['NCT Number'].str.strip()
@@ -311,7 +322,7 @@ with st.sidebar:
             ct_subset = ct_subset.rename(columns={'NCT Number': 'Trial_ID', 'Study Title': 'Title', "Brief Summary":'Abstract','First Posted':'Year', 'Study URL':'URL'})
             ct_subset['Year'] = ct_subset['Year'].str.extract(r'(^[0-9]{4})')
             ct_subset['Database'] = 'ClinicalTrialsGov'
-            ct_subset['Source_Code'] = 2
+            ct_subset['Source_Code'] = 3
             ct_subset['Source'] = "ClinicalTrials.gov"
             ct_subset['Volume'] = ""
             ct_subset['Issue'] = ""
@@ -320,18 +331,6 @@ with st.sidebar:
             # st.write(ct_subset)
             dfs.append (ct_subset)
 
-        if isinstance(embase, pd.DataFrame):
-            embase_subset = embase[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number', 'Source','Volume','Issue']]
-            # embase_subset = embase_subset.rename(columns={'Acession_Number': 'Trial_ID'})
-            embase_subset['Trial_ID'] = embase['Acession_Number'].str.strip()
-            embase_subset['Database'] = 'EMBASE'
-            embase_subset['Source_Code'] = 3
-            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'Database','Source_Code']
-            embase_subset = embase_subset[new_order]
-            # st.write(embase_subset)
-            dfs.append (embase_subset)
-
-        
         if isinstance(ictrp, pd.DataFrame):
             ictrp['TrialID'] = ictrp['TrialID'].str.strip()
             ictrp_subset = ictrp[['TrialID']]
