@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import re
-# from file_convertor import *
+from file_convertor import *
 from concatenate_files import *
 from Import_data import *
 
@@ -46,8 +46,12 @@ if 'data_to_display' not in st.session_state:
     st.session_state.data_to_display = None
 if 'central_data' not in st.session_state:
     st.session_state.central_data = None
+if 'central_non_trials_data' not in st.session_state:
+    st.session_state.central_non_trials_data = None
 if 'embase_data' not in st.session_state:
     st.session_state.embase_data = None
+if 'embase_non_trials_data' not in st.session_state:
+    st.session_state.embase_non_trials_data = None
 if 'ct_data' not in st.session_state:
     st.session_state.ct_data = None
 if 'ictrp_data' not in st.session_state:
@@ -65,10 +69,14 @@ def clear_preview():
 def Cochrane_state():
     st.session_state['Central_IDs'] = []
     st.session_state['Central_df'] =  None
+    st.session_state['Central_non_trials_IDs'] = []
+    st.session_state['Central_non_trials_df'] =  None
 
 def Embase_state():
     st.session_state['Embase_IDs'] = []
     st.session_state['Embase_df'] =  None
+    st.session_state['Embase_non_trials_IDs'] = []
+    st.session_state['Embase_non_trials_df'] = None
 
 def ClinicalTirals_state():
     st.session_state['CT_IDs'] = []
@@ -100,8 +108,7 @@ with st.sidebar:
         full_central_ris = concatenate_files (uploaded_central_ris, 'ris')
         if full_central_ris:
             # st.write(CENTRAL_Parse(full_central_ris))
-            st.session_state.central_data = CENTRAL_Parse(full_central_ris)
-
+            st.session_state.central_data,st.session_state.central_non_trials_data = CENTRAL_Parse(full_central_ris)
 
             st.button(
                 "Preview Central Data", 
@@ -126,7 +133,8 @@ with st.sidebar:
         # st.success("Data uploaded successfully!")
         full_embase_ris = concatenate_files (uploaded_embase_ris, 'ris')
         if full_embase_ris:
-            st.session_state.embase_data = Embase_Parse(full_embase_ris)
+            # st.session_state.embase_data = Embase_Parse(full_embase_ris)
+            st.session_state.embase_data,st.session_state.embase_non_trials_data = Embase_Parse(full_embase_ris)
             st.button(
                 "Preview Embase Data",
                 key="embase_preview_btn", 
@@ -206,6 +214,8 @@ with st.sidebar:
                 args=['scanmedicine_data']
             )
 
+
+    
     with tab3:
         # Central data and ids
         if 'Central_IDs' in st.session_state:
@@ -216,7 +226,14 @@ with st.sidebar:
             central = st.session_state['Central_df']
         else: 
             central = None
-        
+        if 'Central_non_trials_IDs' in st.session_state:
+            central_non_trials_ids = st.session_state['Central_non_trials_IDs']
+        else:
+            central_non_trials_ids = []
+        if 'Central_non_trials_df' in st.session_state:
+            central_non_trials_df = st.session_state['Central_non_trials_df']
+        else: 
+            central_non_trials_df = None
         ## embase data and ids
         if 'Embase_IDs' in st.session_state:
             embase_ids = st.session_state['Embase_IDs']
@@ -226,6 +243,17 @@ with st.sidebar:
             embase = st.session_state['Embase_df']
         else: 
             embase = None
+
+        if 'Embase_non_trials_IDs' in st.session_state:
+            embase_non_trials_ids = st.session_state['Embase_non_trials_IDs']
+        else:
+            embase_non_trials_ids = []
+
+        if 'Embase_non_trials_df' in st.session_state:
+            embase_non_trials_df = st.session_state['Embase_non_trials_df']
+
+        else:
+            embase_non_trials_df = None
         
         ## ClinicalTirals.gov data and ids
         if 'CT_IDs' in st.session_state: 
@@ -258,15 +286,14 @@ with st.sidebar:
             scanmedicine = None
         dfs = []
         if isinstance(central, pd.DataFrame):
-            central_subset = central[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number']]
+            central_subset = central[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number', 'Source','Volume','Issue']]
             # central_subset = central_subset.rename(columns={'Author': 'Trial_ID'})
             central_subset['Trial_ID'] = central['Author'].str.strip()
             central_subset['Database'] = 'CENTRAL'
             central_subset['Source_Code'] = 1
-            new_order = ['Trial_ID','Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Database','Source_Code']
+            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'Database','Source_Code']
             central_subset = central_subset[new_order]
-            dfs.append (central_subset)
-
+            dfs.append (central_subset)           
         
         if isinstance(ct, pd.DataFrame):
             ct['NCT Number'] = ct['NCT Number'].str.strip()
@@ -285,18 +312,21 @@ with st.sidebar:
             ct_subset['Year'] = ct_subset['Year'].str.extract(r'(^[0-9]{4})')
             ct_subset['Database'] = 'ClinicalTrialsGov'
             ct_subset['Source_Code'] = 2
-            new_order = ['Trial_ID','Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Database','Source_Code']
+            ct_subset['Source'] = "ClinicalTrials.gov"
+            ct_subset['Volume'] = ""
+            ct_subset['Issue'] = ""
+            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'Database','Source_Code']
             ct_subset = ct_subset[new_order]
             # st.write(ct_subset)
             dfs.append (ct_subset)
 
         if isinstance(embase, pd.DataFrame):
-            embase_subset = embase[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number']]
+            embase_subset = embase[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number', 'Source','Volume','Issue']]
             # embase_subset = embase_subset.rename(columns={'Acession_Number': 'Trial_ID'})
             embase_subset['Trial_ID'] = embase['Acession_Number'].str.strip()
             embase_subset['Database'] = 'EMBASE'
             embase_subset['Source_Code'] = 3
-            new_order = ['Trial_ID','Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Database','Source_Code']
+            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'Database','Source_Code']
             embase_subset = embase_subset[new_order]
             # st.write(embase_subset)
             dfs.append (embase_subset)
@@ -319,8 +349,11 @@ with st.sidebar:
             ictrp_subset = ictrp_subset.rename(columns={'TrialID': 'Trial_ID', 'Public_title': 'Title', 'Date_registration':'Year', 'web_address':'URL'})
             ictrp_subset['Year'] = ictrp_subset['Year'].str.extract(r'([0-9]{4})')
             ictrp_subset['Database'] = 'WHO_ICTRP'
+            ictrp_subset['Source'] = "WHO ICTRP"
+            ictrp_subset['Volume'] = ""
+            ictrp_subset['Issue'] = ""
             ictrp_subset['Source_Code'] = 4
-            new_order = ['Trial_ID','Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Database','Source_Code']
+            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number', 'Volume','Issue', 'Database','Source_Code']
             ictrp_subset = ictrp_subset[new_order]
             dfs.append (ictrp_subset)
 
@@ -343,8 +376,11 @@ with st.sidebar:
             scanmedicine_subset = scanmedicine_subset.rename(columns={'MainID': 'Trial_ID', 'PublicTitle': 'Title', 'DateOfRegistration':'Year', 'DocURL':'URL'})
             scanmedicine_subset['Year'] = scanmedicine_subset['Year'].str.extract(r'(^[0-9]{4})')
             scanmedicine_subset['Database'] = 'ScanMedicine'
+            scanmedicine_subset['Source'] = 'ScanMedicine'
+            scanmedicine_subset['Volume'] = ""
+            scanmedicine_subset['Issue'] = ""
             scanmedicine_subset['Source_Code'] = 5
-            new_order = ['Trial_ID','Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Database','Source_Code']
+            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'Database','Source_Code']
             scanmedicine_subset = scanmedicine_subset[new_order]
             dfs.append(scanmedicine_subset)
 
@@ -384,16 +420,6 @@ with st.sidebar:
         if isinstance(sorted_df, pd.DataFrame):
             primary_ids = sorted_df[sorted_df['Status'] == 'Primary']['Trial_ID'].unique()
             primary_records_df = sorted_df[sorted_df['Status'] == 'Primary']
-            # def highlight_main_and_duplicates(data):
-            #     # df = data.index.to_frame(index=False).set_index(data.index)
-            #     group_index = data.groupby(['Title', 'Year']).cumcount()
-            #     is_duplicate = group_index > 0
-            #     is_main = group_index == 0
-            #     is_part_of_duplicate_group = data.duplicated(subset=['Title', 'Year'], keep=False)
-            #     styles = pd.DataFrame('', index=data.index, columns=data.columns)
-            #     styles[is_duplicate] = 'background-color: #ffe6e6'
-            #     styles[is_main & is_part_of_duplicate_group] = 'background-color: #e6ffe6'
-            #     return styles
             primary_records_df['Title'] = primary_records_df['Title'].str.strip()
             primary_records_df['Title'] = primary_records_df['Title'].str.lower()
             primary_records_df['Year'] = primary_records_df['Year'].str.strip()
@@ -401,10 +427,6 @@ with st.sidebar:
             duplicate_mask_df = primary_records_df[duplicate_mask_].copy()
             duplicate_mask_df = duplicate_mask_df.sort_values(by=['Title', 'Year'], ascending=True)
             duplicate_mask_df.insert(0, 'Delete?', False, allow_duplicates=False)
-            # styled_duplicate_mask_df = duplicate_mask_df.style.apply(
-            #     highlight_main_and_duplicates, 
-            #     axis=None                
-            # )
             edited_df = st.data_editor(
                     duplicate_mask_df,
                     column_config={"Delete?": st.column_config.CheckboxColumn(required=True)},
@@ -433,35 +455,43 @@ with st.sidebar:
             )
             st.markdown("---")  
             st.subheader("Export Data")
-            def convert_df_to_csv(df):
-                return df.to_csv(index=False).encode('utf-8')
-    
-            def convert_df_to_ris(df):
-                ris_content = ""
-                for index, row in df.iterrows():
-                    ris_content += f"TY  - JOUR\n"  # Type: Trial
-                    ris_content += f"DB  - {row['Database']}\n"
-                    ris_content += f"AN  - {row['Acession_Number']}\n"
-                    ris_content += f"A1  - {row['Trial_ID']}\n"
-                    ris_content += f"T1  - {row['Title']}\n"
-                    ris_content += f"JA  - {row['URL']}\n"
-                    ris_content += f"PY  - {row['Year']}\n"
-                    ris_content += f"N2  - {row['Abstract']}\n"
-                    ris_content += f"KW  - {row['Keywords']}\n"
-                    ris_content += f"UR  - {row['URL']}\n"
-                    ris_content += f"N1  - {row['Note']}\n"
-                    ris_content += f"ER  - \n\n" 
-                return ris_content.encode('utf-8')
             
             for database in summary_table.index:
-                data_to_export = primary_records_df[primary_records_df['Database'] == database]
-               
-                st.markdown(f"**{database}**")
-                
+                st.write(database)
+                data_to_export = primary_records_df[primary_records_df['Database'] == database]               
                 col1, col2 = st.columns(2)
-            
-                # CSV Download Button
-                csv_data = convert_df_to_csv(data_to_export)
+                if database == 'CENTRAL':
+                    if isinstance(central_non_trials_df, pd.DataFrame):
+                        central_non_trials_df_subset = central_non_trials_df[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Source']]
+                        central_non_trials_df_subset['Trial_ID'] = ''
+                        central_non_trials_df_subset['Database'] = 'CENTRAL'
+                        central_non_trials_df_subset['Source_Code'] = 1
+                        new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Database','Source_Code']
+                        central_non_trials_df_subset = central_non_trials_df_subset[new_order]
+                        data_to_export_central = pd.concat([data_to_export, central_non_trials_df_subset], ignore_index=True)
+                        csv_data = convert_df_to_csv(data_to_export_central)
+                        ris_data = convert_df_to_ris(data_to_export) + convert_non_trial_df_to_ris (central_non_trials_df_subset)
+                    else:
+                        csv_data = convert_df_to_csv(data_to_export)
+                        ris_data = convert_df_to_ris(data_to_export)
+
+                elif database == 'EMBASE':
+                    if isinstance(embase_non_trials_df, pd.DataFrame):
+                        embase_non_trials_df_subset = embase_non_trials_df[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Source']]
+                        embase_non_trials_df_subset['Trial_ID'] = ''
+                        embase_non_trials_df_subset['Database'] = 'EMBASE'
+                        embase_non_trials_df_subset['Source_Code'] = 3
+                        new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Database','Source_Code']
+                        embase_non_trials_df_subset = embase_non_trials_df_subset[new_order]
+                        data_to_export_embase = pd.concat([data_to_export, embase_non_trials_df_subset], ignore_index=True)
+                        csv_data = convert_df_to_csv(data_to_export_embase)
+                        ris_data = convert_df_to_ris(data_to_export) + convert_non_trial_df_to_ris (embase_non_trials_df_subset)
+                    else:
+                        csv_data = convert_df_to_csv(data_to_export)
+                        ris_data = convert_df_to_ris(data_to_export)
+                else:
+                    csv_data = convert_df_to_csv(data_to_export)
+                    ris_data = convert_df_to_ris(data_to_export)
                 with col1:
                     st.download_button(
                         label="Export as CSV",
@@ -470,8 +500,9 @@ with st.sidebar:
                         mime='text/csv',
                         key=f'csv_download_{database}'
                     )
-                # RIS Download Button
-                ris_data = convert_df_to_ris(data_to_export)
+                # # RIS Download Button
+                # ris_data = convert_df_to_ris(data_to_export)
+                
                 with col2:
                     st.download_button(
                         label="Export as RIS",
@@ -483,7 +514,6 @@ with st.sidebar:
             
         else: 
             if isinstance(sorted_df, pd.DataFrame):
-                
                 st.subheader("Data Summary")
                 summary_table = pd.pivot_table(sorted_df, 
                                              index='Database',
@@ -498,34 +528,43 @@ with st.sidebar:
                 primary_ids = sorted_df[sorted_df['Status'] == 'Primary']['Trial_ID'].unique()
                 primary_records_df = sorted_df[sorted_df['Status'] == 'Primary']
                 
-                def convert_df_to_csv(df):
-                    return df.to_csv(index=False).encode('utf-8')
-            
-                def convert_df_to_ris(df):
-                    ris_content = ""
-                    for index, row in df.iterrows():
-                        ris_content += f"TY  - JOUR\n"  # Type: Trial
-                        ris_content += f"DB  - {row['Database']}\n"
-                        ris_content += f"AN  - {row['Acession_Number']}\n"
-                        ris_content += f"A1  - {row['Trial_ID']}\n"
-                        ris_content += f"T1  - {row['Title']}\n"
-                        ris_content += f"JA  - {row['URL']}\n"
-                        ris_content += f"PY  - {row['Year']}\n"
-                        ris_content += f"N2  - {row['Abstract']}\n"
-                        ris_content += f"KW  - {row['Keywords']}\n"
-                        ris_content += f"UR  - {row['URL']}\n"
-                        ris_content += f"N1  - {row['Note']}\n"
-                        ris_content += f"ER  - \n\n" 
-                    return ris_content.encode('utf-8')
-                
                 for database in summary_table.index:
                     data_to_export = primary_records_df[primary_records_df['Database'] == database]
                     st.markdown(f"**{database}**")
                     
                     col1, col2 = st.columns(2)
-                
-                    # CSV Download Button
-                    csv_data = convert_df_to_csv(data_to_export)
+
+                    if database == 'CENTRAL':
+                        if isinstance(central_non_trials_df, pd.DataFrame):
+                            central_non_trials_df_subset = central_non_trials_df[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'Source']]
+                            central_non_trials_df_subset['Trial_ID'] = ''
+                            central_non_trials_df_subset['Database'] = 'CENTRAL'
+                            central_non_trials_df_subset['Source_Code'] = 1
+                            new_order = ['Trial_ID','Author', 'Title', 'Source','Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Database','Source_Code']
+                            central_non_trials_df_subset = central_non_trials_df_subset[new_order]
+                            data_to_export_central = pd.concat([data_to_export, central_non_trials_df_subset], ignore_index=True)
+                            csv_data = convert_df_to_csv(data_to_export_central)
+                            ris_data = convert_df_to_ris(data_to_export) + convert_non_trial_df_to_ris (central_non_trials_df_subset)
+                        else:
+                            csv_data = convert_df_to_csv(data_to_export)
+                            ris_data = convert_df_to_ris(data_to_export)
+                    elif database == 'EMBASE':
+                        if isinstance(embase_non_trials_df, pd.DataFrame):
+                            embase_non_trials_df_subset = embase_non_trials_df[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Source']]
+                            embase_non_trials_df_subset['Trial_ID'] = ''
+                            embase_non_trials_df_subset['Database'] = 'EMBASE'
+                            embase_non_trials_df_subset['Source_Code'] = 3
+                            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Database','Source_Code']
+                            embase_non_trials_df_subset = embase_non_trials_df_subset[new_order]
+                            data_to_export_embase = pd.concat([data_to_export, embase_non_trials_df_subset], ignore_index=True)
+                            csv_data = convert_df_to_csv(data_to_export_embase)
+                            ris_data = convert_df_to_ris(data_to_export) + convert_non_trial_df_to_ris (embase_non_trials_df_subset)
+                        else:
+                            csv_data = convert_df_to_csv(data_to_export)
+                            ris_data = convert_df_to_ris(data_to_export)
+                    else:
+                        csv_data = convert_df_to_csv(data_to_export)
+                        ris_data = convert_df_to_ris(data_to_export)
                     with col1:
                         st.download_button(
                             label="Export as CSV",
@@ -535,7 +574,7 @@ with st.sidebar:
                             key=f'csv_download_{database}'
                         )
                     # RIS Download Button
-                    ris_data = convert_df_to_ris(data_to_export)
+                    # ris_data = convert_df_to_ris(data_to_export)
                     with col2:
                         st.download_button(
                             label="Export as RIS",
@@ -548,7 +587,7 @@ with st.sidebar:
 
 with tab2:
     
-    # Check which data source key is set in the session state
+    
     source_key = st.session_state.data_to_display
     
     if source_key is not None and st.session_state.get(source_key) is not None:
@@ -568,11 +607,11 @@ with tab2:
         data_to_show = st.session_state[source_key]
         st.write(data_to_show.iloc[:100])
         
-        # Add a button to clear the preview data
+        
         st.button("Clear Preview", on_click=clear_preview, key="hide_preview_btn")
     elif source_key is not None and st.session_state.get(source_key) is None:
         st.warning("No parsed data available to preview for the selected source.")
-        # Reset the state if for some reason we try to display None
+        
         st.session_state.data_to_display = None
     else:
         st.info("Upload your data in the sidebar and click a 'Preview Data' button to see the data here.")

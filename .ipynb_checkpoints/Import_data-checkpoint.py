@@ -18,7 +18,9 @@ def RIS_To_DataFrame (ris_data):
     'KW':'Keywords',
     'UR': 'URL',
     'DB': 'Database',
-    'PT': 'Publication_Type'}
+    'PT': 'Publication_Type',
+    'VL':'Volume',
+    'IS':'Issue'}
     standard_columns = set(tag_map.values())
     record_splitter = r'ER\s{2}-\s*'
     line_parser = r'^([A-Z0-9]{2})\s{2}-\s+(.*)'
@@ -54,6 +56,9 @@ def RIS_To_DataFrame (ris_data):
 
 
 def CENTRAL_Parse (data):
+    filtered_CENTRAL_Dataframe = None
+    filtered_CENTRAL_non_trials_Dataframe = None
+    
     m3_pattern = re.compile(r'M3\s+-\s+Trial registry record', re.MULTILINE)
     a1_pattern = re.compile(r'A1\s+-\s+(.*)', re.MULTILINE)
     try:
@@ -63,25 +68,37 @@ def CENTRAL_Parse (data):
         CENTRAL_Dataframe['Note'] = CENTRAL_Dataframe['Note'].str.strip()
         CENTRAL_Dataframe['Note'] = CENTRAL_Dataframe['Note'].str.lower()
         central_ids = []
+        central_non_trials = []
         for idx,record in enumerate(CENTRAL_Dataframe['Note']):
             if record == "trial registry record":
                 central_ids.append (CENTRAL_Dataframe['Author'][idx].strip())
+            else:
+                central_non_trials.append(CENTRAL_Dataframe['Acession_Number'][idx].strip())
         if central_ids:
             central_ids = list (set(central_ids))
             filtered_CENTRAL_Dataframe = CENTRAL_Dataframe[CENTRAL_Dataframe['Author'].isin(central_ids)]
             st.session_state['Central_IDs'] = central_ids
             st.session_state['Central_df'] =  filtered_CENTRAL_Dataframe
             st.write(f"🎉 Successfully identified **{len(central_ids)}** unique trial records.")
-            return filtered_CENTRAL_Dataframe           
+            # return filtered_CENTRAL_Dataframe
             
         else:
             st.warning("No trial records were identified. Please double check the uploaded data.")
+        if central_non_trials:
+            central_non_trials = list (set(central_non_trials))
+            filtered_CENTRAL_non_trials_Dataframe = CENTRAL_Dataframe[CENTRAL_Dataframe['Acession_Number'].isin(central_non_trials)]
+            st.session_state['Central_non_trials_IDs'] = central_non_trials
+            st.session_state['Central_non_trials_df'] =  filtered_CENTRAL_non_trials_Dataframe
+
+        return filtered_CENTRAL_Dataframe,filtered_CENTRAL_non_trials_Dataframe
             # uploaded_ris_file1.seek(0) 
     except Exception as e:
         st.error(f"Error reading RIS file: {e}. Please check the uploaded data.")
 
 
 def Embase_Parse (data):
+    filtered_EMBASE_Dataframe = None
+    filtered_EMBASE_non_trials_Dataframe = None
     db_pattern = re.compile(r'DB\s+-\s+Embase Clinical Trials',re.MULTILINE)
     an_pattern = re.compile(r'AN\s+-\s+(.*)', re.MULTILINE)
     # create embase ids list
@@ -92,9 +109,12 @@ def Embase_Parse (data):
         EMBASE_Dataframe['Database'] = EMBASE_Dataframe['Database'].str.strip()
         EMBASE_Dataframe['Database'] = EMBASE_Dataframe['Database'].str.lower()
         embase_ids = []
+        embase_non_trials = []
         for idx,record in enumerate(EMBASE_Dataframe['Database']):
             if record == "embase clinical trials":
                 embase_ids.append (EMBASE_Dataframe['Acession_Number'][idx].strip())
+            else:
+                embase_non_trials.append(EMBASE_Dataframe['Acession_Number'][idx].strip())
         if embase_ids:
             embase_ids = list (set(embase_ids))
             filtered_EMBASE_Dataframe = EMBASE_Dataframe[EMBASE_Dataframe['Acession_Number'].isin(embase_ids)].reset_index(drop=True)
@@ -111,9 +131,16 @@ def Embase_Parse (data):
             st.session_state['Embase_IDs'] = embase_ids
             st.session_state['Embase_df'] =  filtered_EMBASE_Dataframe
             st.write(f"🎉 Successfully identified **{len(embase_ids)}** unique trial records.")
-            return filtered_EMBASE_Dataframe
+            # return filtered_EMBASE_Dataframe
         else:
             st.warning("No trial records were identified. Please double check the uploaded data.")
+
+        if embase_non_trials:
+            embase_non_trials = list (set(embase_non_trials))
+            filtered_EMBASE_non_trials_Dataframe = EMBASE_Dataframe[EMBASE_Dataframe['Acession_Number'].isin(embase_non_trials)]
+            st.session_state['Embase_non_trials_IDs'] = embase_non_trials
+            st.session_state['Embase_non_trials_df'] =  filtered_EMBASE_non_trials_Dataframe
+        return filtered_EMBASE_Dataframe,filtered_EMBASE_non_trials_Dataframe
     except Exception as e:
         st.error(f"Error reading RIS file: {e}. Please check the uploaded data.")
 
