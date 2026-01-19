@@ -93,7 +93,7 @@ def CENTRAL_Parse (data):
         return filtered_CENTRAL_Dataframe,filtered_CENTRAL_non_trials_Dataframe
             # uploaded_ris_file1.seek(0) 
     except Exception as e:
-        st.error(f"Error reading RIS file: {e}. Please check the uploaded data.")
+        st.error(f"Error reading RIS file. Please check the uploaded data.")
 
 
 def Embase_Parse (data):
@@ -133,7 +133,7 @@ def Embase_Parse (data):
             st.write(f"🎉 Successfully identified **{len(embase_ids)}** unique trial records.")
             # return filtered_EMBASE_Dataframe
         else:
-            st.warning("No trial records were identified. Please double check the uploaded data.")
+            st.warning("No trial records were identified. Please check the uploaded data.")
 
         if embase_non_trials:
             embase_non_trials = list (set(embase_non_trials))
@@ -142,7 +142,7 @@ def Embase_Parse (data):
             st.session_state['Embase_non_trials_df'] =  filtered_EMBASE_non_trials_Dataframe
         return filtered_EMBASE_Dataframe,filtered_EMBASE_non_trials_Dataframe
     except Exception as e:
-        st.error(f"Error reading RIS file: {e}. Please check the uploaded data.")
+        st.error(f"Error reading RIS file. Please check the uploaded data.")
 
     
 
@@ -164,7 +164,7 @@ def ClinicalTrialsGov_Parse (data):
         else:
             st.warning("No trial records were identified from ClinicalTrials.gov.")
     except Exception as e:
-        st.error(f"Error reading CSV file: {e}. Please check the uploaded data.")
+        st.error(f"Error reading CSV file. Please check the uploaded data.")
 
 def WHO_ICTRP_Parse (data):
     try:
@@ -185,7 +185,7 @@ def WHO_ICTRP_Parse (data):
             st.warning("No trial records were identified from WHO ICTRP.")
             
     except Exception as e:
-        st.error(f"Error reading XML file: {e}. Please check the uploaded data.")
+        st.error(f"Error reading XML file. Please check the uploaded data.")
 
 
 def ScanMedicine_Parse (data):
@@ -206,6 +206,6 @@ def ScanMedicine_Parse (data):
         else:
             st.warning("No trial records were identified from ScanMedicine.")
     except Exception as e:
-        st.error(f"Error reading CSV file: {e}. Please check the uploaded data.")  
+        st.error(f"Error reading CSV file. Please check the uploaded data.")  
         
     
