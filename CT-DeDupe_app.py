@@ -22,29 +22,41 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["Home", "Data Preview", "Auto-Deduplicat
 with tab1:
     st.markdown("""
     ### Overview
-    This tool is designed to remove duplicate clinical trial records within and between Cochrane CENTRAL, Embase (Ovid), ClinicalTrials.gov, WHO ICTRP, and ScanMedicine. After you upload your data, the tool automatically removes duplicates and identifies potential matches for your review. You can then manually confirm these potential duplicates and download clean, de-duplicated data.
+    This tool is designed to remove duplicate clinical trial records within and between Cochrane CENTRAL, Embase (Ovid), ClinicalTrials.gov, WHO ICTRP, and ScanMedicine. To start, the left-hand sidebar provides the options for data uploads for each source. After the data is uploaded, the tool removes duplicate records in two steps: first, it automatically removes exact matches based on Trial IDs; second, it provides a list of potential duplicates with the same Title and Year for manual checking and removal. Finally, the tool provides a summary of the data and options for downloading cleaned results in RIS or CSV format.
+   
     
     ### User Guide
     This guide provides detailed information on the various sections and tabs of the tool, explaining how it functions to identify and remove duplicate records. 
     
-    **Upload Data**: This section is designed for uploading data from five sources: Cochrane CENTRAL, Embase (Ovid), ClinicalTrials.gov, WHO ICTRP, and ScanMedicine. Please upload the data corresponding to each source. It is not necessary to provide data for all sources, and the order of uploading does not matter. For Cochrane CENTRAL and Embase, the tool is specifically configured to process only records originating from trial registries. 
+    **Upload Data**: This section is designed for uploading data from five sources: Cochrane CENTRAL, Embase (Ovid), ClinicalTrials.gov, WHO ICTRP, and ScanMedicine. Please upload the data corresponding to each source. Data must be exported directly from the specified sources, edited files may cause errors. It is not necessary to provide data for all sources, and the order of uploading does not matter. For Cochrane CENTRAL and Embase, the tool is specifically configured to process only records originating from trial registries. 
     You may upload multiple files per source, which the tool will automatically combine and de-duplicate. Once uploaded, you can use the tabs to view your data, review potential matches, and download the cleaned results.
         
     **Data Preview**: The Data Preview tab allows you to verify that your files have been correctly read by the tool. To use this feature, after uploading your data, click the 'Preview [Source Name]' button located under the respective source and navigate to the 'Data Preview' tab. Your data will be displayed in a tabular format for easy inspection. To ensure optimal speed and memory performance, this preview is limited to the first 100 records per source. Once you have finished verifying your data, you can click 'Clear Preview Data' to reset the view.
 
-    **Auto-Deduplication**: The Auto De-duplication tab identifies duplicate records based on their Trial ID. In this view, each record is assigned a status: 'Master' (highlighted in green) or 'Duplicate' (highlighted in red). The 'Database' column indicates the specific source of each record. 
-    To determine which record is kept as the Master, the tool follows a specific priority order: 1. Cochrane CENTRAL; 2. Embase; 3. ClinicalTrials.gov; 4. WHO ICTRP; 5. ScanMedicine
-    For efficiency, the preview displays up to 100 records. For full transparency, you can review these samples or download the complete dataset to verify all results.
+    **Auto-Deduplication**: The Auto De-duplication tab identifies duplicate records based on their Trial ID. This process is automatic and requires no user action. However, you can verify the results in the table provided. In this view, each record is assigned a status: 'Master' (highlighted in green) or 'Duplicate' (highlighted in red). The 'Database' column indicates the specific source of each record. 
+    To determine which record is kept as the Master, the tool follows a specific priority order: 1. Cochrane CENTRAL; 2. Embase; 3. ClinicalTrials.gov; 4. WHO ICTRP; 5. ScanMedicine.
+    For efficiency, the preview displays up to 100 records. For full transparency, you can review these samples or download the complete dataset to verify all results. 
     
-    **Manual-Deduplication**: Based on all uploaded data, the tool creates a table of records that potentially match. This matching process is based on Titles (Public Titles) and Years. In this section, you can manually check the records. For each identified pair, you must consider one record as the 'Master' and mark the others as duplicates to be removed. Once you have made your selection, click the 'Remove Checked Records' button.
+    **Manual-Deduplication**: Based on all uploaded data, the tool identifies potential matches using Titles (Public Titles) and Years. In this tab, you can manually review these records to identify further duplicates. For each identified pair, you must consider one record as the 'Master' and mark the others as duplicates for removal. If no duplicates are found within a pair, the records can be left as they are. To simplify this process, the table pre-highlights one record in green and its potential duplicate in red. You need to select which records to remove from the collection. Once you have made your selections, click the 'Remove Checked Records' button below the table.
     
     ⚠️ Note: Please review your selections carefully before clicking the 'Remove Checked Records' button. If a record is removed by mistake, you will need to refresh the tool and re-upload your data.
     
-    **Export Data**: The Export Data tab provides a summary of your results, showing the total number of Master and Duplicate records for each source. From this section, you can download your processed data in both CSV and RIS formats for further use. The Master files contain all unique records after de-duplication. The Master files for Cochrane CENTRAL and Embase include records that are not from trial registries, plus the unique trial registry records. De-duplication is only applied to the trial registry entries within these databases. You can also download the duplicate records for each source in RIS and CSV formats.
+    **Export Data**: The Export Data tab provides a summary of your results, showing the total number of Master and Duplicate records for each source. From this section, you can download your cleaned data in both RIS and CSV formats for further use. The Master files contain all unique records after de-duplication. You can also download the duplicate records for each source in RIS and CSV formats.
+    
+    ⚠️ Note: The Master files for Cochrane CENTRAL and Embase include both unique trial registry records and records from non-registry sources. De-duplication is only applied to the trial registry records within these databases. 
+    
+    #### Privacy & Data Handling
 
+    **Infrastructure**: 
+    This tool is hosted on Streamlit Community Cloud. By using this tool, you acknowledge that your interaction with the platform is governed by the [Snowflake Privacy Notice](https://www.snowflake.com/en/legal/privacy/privacy-policy/). The developer of this tool does not control the platform-level telemetry or data collection performed by Snowflake.
+    
+    **Data Collection**: 
+     This tool is designed with privacy in mind. It does not require, request, or store any personally identifiable information. All uploaded files are processed strictly in-memory to perform the requested duplicate removal. No data is written to a permanent database or persistent storage. Uploaded content and processed results exist only for the duration of your active session. Once the browser tab is closed or the session times out, all data is automatically remove from the tool's temporary memory.
+
+    
     #### Developer & Contact Information
     
-    This tool was developed as part of the project, Global Alliance for Living Evidence on aNxiety, depressiOn and pSychosis (GALENOS) by Hossein Dehdarirad, Research Fellow and Information Scientist at EPPI Center, University College London. For any questions, please contact h.dehdarirad@ucl.ac.uk.
+    This tool was developed as part of the project, Global Alliance for Living Evidence on aNxiety, depressiOn and pSychosis (GALENOS) -- Wellcome, by Hossein Dehdarirad, Research Fellow and Information Scientist at EPPI Center, University College London. This tool is currently in Beta version. Please send feedback, questions or any suggestions to h.dehdarirad@ucl.ac.uk.
 
     #### How to cite: 
     If you use this tool, please cite it as follows:
@@ -121,9 +133,9 @@ def ScanMedicine_state():
 with st.sidebar:
     st.title("Upload Data")
     # Section 1: Cochrane CENTRAL
-    st.subheader("1. Cochrane Central")
+    st.subheader("Cochrane CENTRAL")
     uploaded_central_ris = st.file_uploader(
-        "Choose your RIS file...",
+        "Choose your RIS file(s)...",
         type=["ris"],
         key="ris_uploader1",
         accept_multiple_files=True,
@@ -149,9 +161,9 @@ with st.sidebar:
     st.markdown("---") 
     
     # Section 2: Embase data
-    st.subheader("2. Embase")
+    st.subheader("Embase (Ovid)")
     uploaded_embase_ris = st.file_uploader(
-        "Choose your RIS file...",
+        "Choose your RIS file(s)...",
         type=["ris"],
         key="ris_uploader2",
         accept_multiple_files=True,
@@ -175,9 +187,9 @@ with st.sidebar:
 
     st.markdown("---")     
     # ClinicalTrials.gov data
-    st.subheader("3. ClinicalTrials.gov")
+    st.subheader("ClinicalTrials.gov")
     ClinicalTrialsGov = st.file_uploader(
-        "Choose your CSV file...",
+        "Choose your CSV file(s)...",
         type=["csv"],
         key="csv_uploader1",
         accept_multiple_files=True,
@@ -199,9 +211,9 @@ with st.sidebar:
 
     st.markdown("---")     
     # WHO ICTRP data
-    st.subheader("4. WHO ICTRP")
+    st.subheader("WHO ICTRP")
     WHO_ICTRP_XML = st.file_uploader(
-        "Choose your XML file...",
+        "Choose your XML file(s)...",
         type=["xml"],
         key="xml_uploader",
         accept_multiple_files=True,
@@ -224,9 +236,9 @@ with st.sidebar:
     
     st.markdown("---")     
     # ScanMedicine data
-    st.subheader("5. ScanMedicine")
+    st.subheader("ScanMedicine")
     ScanMedicine_csv = st.file_uploader(
-        "Choose your CSV file...",
+        "Choose your CSV file(s)...",
         type=["csv"], 
         key="csv_uploader2",
         accept_multiple_files=True,
@@ -264,7 +276,8 @@ with st.sidebar:
         
             st.header(f"Previewing Data from: **{data_source_name}**")
             data_to_show = st.session_state[source_key]
-            st.write(data_to_show.iloc[:100])
+            data_to_show.insert(0, 'No.', range(1, len(data_to_show) + 1))
+            st.dataframe(data_to_show.iloc[:100], hide_index=True)
             
             
             st.button("Clear Preview", on_click=clear_preview, key="hide_preview_btn")
@@ -444,6 +457,8 @@ with st.sidebar:
             dfs.append(scanmedicine_subset)
 
         if dfs:
+            with st.expander ("Auto-Deduplication Guide"):
+                st.caption("This table shows the Master (green) and Duplicate (red) records identified and removed by Auto-Deduplication based on Trial IDs. For transparency into the tool's logic, you can download the complete dataset using the **Download Data** link.")
             combined_df = pd.concat(dfs, ignore_index=True)
             sorted_df = combined_df.sort_values(by=['Trial_ID', 'Source_Code'],ascending=[True, True]).reset_index(drop=True)
             sorted_df['Status'] = np.where(sorted_df.groupby('Trial_ID').cumcount() == 0,  'Master', 'Duplicate')
@@ -451,15 +466,14 @@ with st.sidebar:
             sorted_df = sorted_df[sorted_df_new_order]
             def color_priority(row):
                 if row['Status'] == 'Master':
-                    # Apply a light green background to the entire row
                     return ['background-color: #e6ffe6'] * len(row)
                 elif row['Status'] == 'Duplicate':
-                    # Apply a light red background to the entire row
                     return ['background-color: #ffe6e6'] * len(row)
                 return [''] * len(row)
             sliced_df = sorted_df.iloc[:100]
+            sliced_df.insert(0, 'No.', range(1, len(sliced_df) + 1))
             styled_df = sliced_df.style.apply(color_priority, axis=1)
-            st.write(styled_df)
+            st.dataframe(styled_df, hide_index=True)
             st.session_state['sorted_df'] = sorted_df
             def convert_df_to_csv(df):
                 return df.to_csv(index=False).encode('utf-8')
@@ -467,7 +481,7 @@ with st.sidebar:
             st.download_button(
                 label="Download Data",
                 data=dfs_to_download,
-                file_name='Duplicate Records.csv',
+                file_name='Auto-Deduplication-Results.csv',
                 mime='text/csv')
 
 
@@ -489,15 +503,29 @@ with st.sidebar:
             master_records_df['Year'] = master_records_df['Year'].str.strip()
             duplicate_mask_ = master_records_df.duplicated(subset=['Title', 'Year'], keep=False)
             duplicate_mask_df = master_records_df[duplicate_mask_].copy()
-            duplicate_mask_df = duplicate_mask_df.sort_values(by=['Title', 'Year'], ascending=True)
-            duplicate_mask_df.insert(0, 'Delete?', False, allow_duplicates=False)
+            duplicate_mask_df = duplicate_mask_df.sort_values(by=['Title', 'Year','Source_Code'], ascending=[True, True, True])
+            duplicate_mask_df.insert(0, 'Select', False, allow_duplicates=False)
+
+            def highlight_rows(df):
+                man_style_df = pd.DataFrame('', index=df.index, columns=df.columns)
+                # df = df.sort_values(by=['Source_Code'],ascending=[True])
+                is_subsequent = df.duplicated(subset=['Title', 'Year'], keep='first')
+                man_style_df.loc[~is_subsequent, :] = 'background-color: #e6ffe6'
+                man_style_df.loc[is_subsequent, :] = 'background-color: #ffe6e6'
+                return man_style_df
+            duplicate_mask_df = duplicate_mask_df.style.apply(highlight_rows, axis=None)
+            with st.expander("Manual-Deduplication Guide"):
+                st.caption ('''This table identifies potential duplicate records based on Title and Year. To simplify the review process, pairs are color-coded: Green records are suggested to keep, and Red records are suggested for removal. To remove records, select the desired record(s) in the **Select** column and then click the **Remove Checked Records** button. If a record is removed by mistake, please refresh the tool and re-upload your data. Click the Download icon on the top-right of the table to review the data on your device before making changes.''')
+            
             edited_df = st.data_editor(
                     duplicate_mask_df,
-                    column_config={"Delete?": st.column_config.CheckboxColumn(required=True)},
+                    column_config={"Select": st.column_config.CheckboxColumn(required=True)},
+                    disabled=["Status", "Database", "Trial_ID", "Author", "Title", "Source", "Year", "URL", "Abstract", "Keywords", "Note", "Acession_Number", "Volume", "Issue", "Source_Code"],
                     hide_index=True)
+            
             st.session_state['edited_df'] = edited_df
             if st.button("Remove Checked Records"):
-                rows_to_remove = edited_df[edited_df['Delete?'] == True]
+                rows_to_remove = edited_df[edited_df['Select'] == True]
                 unwanted_values = list (rows_to_remove['Trial_ID'])
                 rows_to_drop = master_records_df['Trial_ID'].isin(unwanted_values)
                 sorted_df_manual = sorted_df.copy()
@@ -513,6 +541,8 @@ with st.sidebar:
     'master_records_df' in st.session_state and 
     st.session_state['master_ids'] is not None and 
     st.session_state['master_records_df'] is not None):
+            with st.expander ("Data Summary and Export Guide"):
+                st.caption ('''**Data Summary**: This table shows the total number of Master and Duplicate records for each source. Note: For Cochrane CENTRAL and Embase, these figures reflect only Trial Registry records.\n\n**Export Data**: Download the cleaned Master files and identified Duplicates in both CSV and RIS formats.\nNote: The Master files for Cochrane CENTRAL and Embase include both unique trial registry records and records from non-registry sources. De-duplication is only applied to the Trial Registry Records within these databases. ''')
             master_ids = st.session_state['master_ids']
             master_records_df = st.session_state['master_records_df']
             sorted_df_manual = st.session_state['sorted_df_manual']
@@ -619,6 +649,8 @@ with st.sidebar:
             
         else: 
             if isinstance(sorted_df, pd.DataFrame):
+                with st.expander ("Data Summary and Export Guide"):
+                    st.caption ('''**Data Summary**: This table shows the total number of Master and Duplicate records for each source. Note: For Cochrane CENTRAL and Embase, these figures reflect only Trial Registry records.\n\n**Export Data**: Download the cleaned Master files and identified Duplicates in both RIS and CSV formats.\nNote: The Master files for Cochrane CENTRAL and Embase include both unique trial registry records and records from non-registry sources. De-duplication is only applied to the Trial Registry records within these databases. ''')
                 st.subheader("Data Summary")
                 summary_table = pd.pivot_table(sorted_df, 
                                              index='Database',
