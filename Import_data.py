@@ -2,12 +2,11 @@ import streamlit as st
 import pandas as pd
 import re
 
-
 def RIS_To_DataFrame (ris_data):
     tag_map = {
     'TY': 'Reference_Type',
     'TI': 'Title', 'T1': 'Title',
-    'AN': 'Acession_Number',
+    'AN': 'Acession_Number', 'U2': 'Acession_Number',
     'AB': 'Abstract', 'N2': 'Abstract',
     'AU': 'Author', 'A1': 'Author',
     'JA': 'Source', 'SO': 'Source', 'JF':'Source',
@@ -30,29 +29,37 @@ def RIS_To_DataFrame (ris_data):
     for record_str in ris_records:
         if not record_str.strip():
             continue
-            
         record_dict = {}
+        current_standard_tag = None 
+        
         for line in record_str.strip().split('\n'):
-            match = re.search(line_parser, line.strip())
+            line_stripped = line.strip()
+            if not line_stripped:
+                continue
+            match = re.search(line_parser, line_stripped)
             if match:
                 ris_tag = match.group(1).strip()
                 ris_value = match.group(2).strip()
-                standard_tag = tag_map.get(ris_tag)
+                current_standard_tag = tag_map.get(ris_tag)
     
-                if standard_tag:
-                    if standard_tag in record_dict:
-                        record_dict[standard_tag] += f"; {ris_value}"
+                if current_standard_tag:
+                    if current_standard_tag in record_dict:
+                        record_dict[current_standard_tag] += f"; {ris_value}"
                     else:
-                        record_dict[standard_tag] = ris_value
+                        record_dict[current_standard_tag] = ris_value
+            else:
+                if current_standard_tag:
+                    record_dict[current_standard_tag] += f" {line_stripped}"
         
         parsed_records.append(record_dict)
     df = pd.DataFrame(parsed_records, columns=sorted(list(standard_columns)))
     object_cols = df.select_dtypes(include=['object']).columns
     df[object_cols] = df[object_cols].where(pd.notna, None)
-    df['Author'] = df['Author'].str.rstrip(',')
-    # st.write(f"🎉 Successfully parsed **{len(parsed_records)}** records.")
+    df['Author'] = df['Author'].astype(str).str.rstrip(',')
     
     return df
+
+
 
 
 def CENTRAL_Parse (data):
@@ -100,21 +107,28 @@ def Embase_Parse (data):
     filtered_EMBASE_Dataframe = None
     filtered_EMBASE_non_trials_Dataframe = None
     db_pattern = re.compile(r'DB\s+-\s+Embase Clinical Trials',re.MULTILINE)
+    jf_pattern = re.compile(r'JF\s+-\s+clinicaltrials.gov',re.MULTILINE)
     an_pattern = re.compile(r'AN\s+-\s+(.*)', re.MULTILINE)
+    id_pattern = re.compile(r'U2  - L(.*)', re.MULTILINE)
     # create embase ids list
     try:
         embase = data.split("ER  -")[:-1]
         st.write(f"🎉 Successfully parsed **{len(embase)}** records.")
         EMBASE_Dataframe = RIS_To_DataFrame (data)
-        EMBASE_Dataframe['Database'] = EMBASE_Dataframe['Database'].str.strip()
-        EMBASE_Dataframe['Database'] = EMBASE_Dataframe['Database'].str.lower()
+        
+        EMBASE_Dataframe['Database'] = EMBASE_Dataframe['Database'].astype(str).str.strip()
+        EMBASE_Dataframe['Database'] = EMBASE_Dataframe['Database'].astype(str).str.lower()
+        
         embase_ids = []
         embase_non_trials = []
-        for idx,record in enumerate(EMBASE_Dataframe['Database']):
-            if record == "embase clinical trials":
-                embase_ids.append (EMBASE_Dataframe['Acession_Number'][idx].strip())
+        for record in EMBASE_Dataframe.itertuples():
+            idx = record.index
+            if record.Database == "embase clinical trials":
+                embase_ids.append (record.Acession_Number)
+            elif record.Note == 'Clinical Trial': 
+                embase_ids.append (record.Acession_Number)
             else:
-                embase_non_trials.append(EMBASE_Dataframe['Acession_Number'][idx].strip())
+                embase_non_trials.append(record.Acession_Number)      
         if embase_ids:
             embase_ids = list (set(embase_ids))
             filtered_EMBASE_Dataframe = EMBASE_Dataframe[EMBASE_Dataframe['Acession_Number'].isin(embase_ids)].reset_index(drop=True)
@@ -122,12 +136,13 @@ def Embase_Parse (data):
             year_cleaned = []
             for idx in range(len(filtered_EMBASE_Dataframe)):
                 url_splited = filtered_EMBASE_Dataframe['URL'][idx].split("; ")
-                if len (url_splited)>1:
+                if len (url_splited)>= 1:
                     embase_urls.append (url_splited[0])
-                else:
+                else: 
                     embase_urls.append (url_splited)
             filtered_EMBASE_Dataframe['URL'] = embase_urls 
             filtered_EMBASE_Dataframe['Year'] = filtered_EMBASE_Dataframe['Year'].str.rstrip('//')
+            filtered_EMBASE_Dataframe['Acession_Number'] = filtered_EMBASE_Dataframe['Acession_Number'].str.replace(r'^L', '', regex=True)
             st.session_state['Embase_IDs'] = embase_ids
             st.session_state['Embase_df'] =  filtered_EMBASE_Dataframe
             st.write(f"🎉 Successfully identified **{len(embase_ids)}** unique trial records.")

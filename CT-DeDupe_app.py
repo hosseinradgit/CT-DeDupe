@@ -22,19 +22,19 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["Home", "Data Preview", "Auto-Deduplicat
 with tab1:
     st.markdown("""
     ### Overview
-    This tool is designed to remove duplicate clinical trial records within and between Cochrane CENTRAL, Embase (Ovid), ClinicalTrials.gov, WHO ICTRP, and ScanMedicine. To start, the left-hand sidebar provides the options for data uploads for each source. After the data is uploaded, the tool removes duplicate records in two steps: first, it automatically removes exact matches based on Trial IDs; second, it provides a list of potential duplicates with the same Title and Year for manual checking and removal. Finally, the tool provides a summary of the data and options for downloading cleaned results in RIS or CSV format.
+    This tool is designed to remove duplicate clinical trial records within and between Cochrane CENTRAL (Wiley), Embase, ClinicalTrials.gov, WHO ICTRP, and ScanMedicine. To start, the left-hand sidebar provides the options for data uploads for each source. After the data is uploaded, the tool removes duplicate records in two steps: first, it automatically removes exact matches based on Trial IDs; second, it provides a list of potential duplicates with the same Title and Year for manual checking and removal. Finally, the tool provides a summary of the data and options for downloading cleaned results in RIS or CSV format.
    
     
     ### User Guide
     This guide provides detailed information on the various sections and tabs of the tool, explaining how it functions to identify and remove duplicate records. 
     
-    **Upload Data**: This section is designed for uploading data from five sources: Cochrane CENTRAL, Embase (Ovid), ClinicalTrials.gov, WHO ICTRP, and ScanMedicine. Please upload the data corresponding to each source. Data must be exported directly from the specified sources, edited files may cause errors. It is not necessary to provide data for all sources, and the order of uploading does not matter. For Cochrane CENTRAL and Embase, the tool is specifically configured to process only records originating from trial registries. 
+    **Upload Data**: This section is designed for uploading data from five sources: Cochrane CENTRAL (Wiley), Embase (Elsevier or Ovid), ClinicalTrials.gov, WHO ICTRP, and ScanMedicine. Please upload the data corresponding to each source. Data must be exported directly from the specified sources, edited files may cause errors. It is not necessary to provide data for all sources, and the order of uploading does not matter. For Cochrane CENTRAL and Embase, the tool is specifically configured to process only records originating from trial registries. 
     You may upload multiple files per source, which the tool will automatically combine and de-duplicate. Once uploaded, you can use the tabs to view your data, review potential matches, and download the cleaned results.
         
     **Data Preview**: The Data Preview tab allows you to verify that your files have been correctly read by the tool. To use this feature, after uploading your data, click the 'Preview [Source Name]' button located under the respective source and navigate to the 'Data Preview' tab. Your data will be displayed in a tabular format for easy inspection. To ensure optimal speed and memory performance, this preview is limited to the first 100 records per source. Once you have finished verifying your data, you can click 'Clear Preview Data' to reset the view.
 
-    **Auto-Deduplication**: The Auto De-duplication tab identifies duplicate records based on their Trial ID. This process is automatic and requires no user action. However, you can verify the results in the table provided. In this view, each record is assigned a status: 'Master' (highlighted in green) or 'Duplicate' (highlighted in red). The 'Database' column indicates the specific source of each record. 
-    To determine which record is kept as the Master, the tool follows a specific priority order: 1. Cochrane CENTRAL; 2. Embase; 3. ClinicalTrials.gov; 4. WHO ICTRP; 5. ScanMedicine.
+    **Auto-Deduplication**: The Auto De-duplication tab identifies duplicate records based on their Trial ID. This process is automatic and requires no user action. However, you can verify the results in the table provided. In this view, each record is assigned a status: 'Master' (highlighted in green) or 'Duplicate' (highlighted in red). The 'Database' column indicates the specific source of each record.
+    To ensure you get the most up-to-date data, the tool chooses the Master records using a priority order from highest to lowest: ClinicalTrials.gov, WHO-ICTRP, Cochrane CENTRAL, Embase, and ScanMedicine.
     For efficiency, the preview displays up to 100 records. For full transparency, you can review these samples or download the complete dataset to verify all results. 
     
     **Manual-Deduplication**: Based on all uploaded data, the tool identifies potential matches using Titles (Public Titles) and Years. In this tab, you can manually review these records to identify further duplicates. For each identified pair, you must consider one record as the 'Master' and mark the others as duplicates for removal. If no duplicates are found within a pair, the records can be left as they are. To simplify this process, the table pre-highlights one record in green and its potential duplicate in red. You need to select which records to remove from the collection. Once you have made your selections, click the 'Remove Checked Records' button below the table.
@@ -61,9 +61,16 @@ with tab1:
     #### How to cite: 
     If you use this tool, please cite it as follows:
     
-    Dehdarirad, Hossein (2026). CT-DeDupe: An Automated, Free Tool for Clinical Trial Deduplication (Version 1.1.1). https://clinicaltrialsdeduplicator.streamlit.app/
+    Dehdarirad, Hossein (2026). CT-DeDupe: An Automated, Free Tool for Clinical Trial Deduplication. https://clinicaltrialsdeduplicator.streamlit.app/
     
     """) 
+with st.sidebar.expander("**Tool Updates**", expanded=False):
+    st.markdown("""
+    **What's New (June 2026)**
+    * **Embase Uploads:** You can now upload files from Ovid or Elsevier.
+    * **Deduplication Priority Update:** Updated the priority rules to ensure you keep the latest data. See the User Guide for details.
+    * **New Exports:** Added options to download all clean and duplicate records.
+    """)
 # Initialize session state for data storage and display control
 if 'data_to_display' not in st.session_state:
     st.session_state.data_to_display = None
@@ -128,12 +135,14 @@ def ScanMedicine_state():
     st.session_state['master_ids'] = None
     st.session_state['master_records_df'] = None
 
-
+def html_clean(text):
+    remove_html = re.sub(r'<[^>]+>', '', text)
+    return re.sub(r'\s+', ' ', remove_html).strip()
 
 with st.sidebar:
     st.title("Upload Data")
     # Section 1: Cochrane CENTRAL
-    st.subheader("Cochrane CENTRAL")
+    st.subheader("Cochrane CENTRAL (Wiley)")
     uploaded_central_ris = st.file_uploader(
         "Choose your RIS file(s)...",
         type=["ris"],
@@ -150,7 +159,7 @@ with st.sidebar:
                 st.session_state.central_data,st.session_state.central_non_trials_data = CENTRAL_Parse(full_central_ris)
     
                 st.button(
-                    "Preview Central Data", 
+                    "Preview CENTRAL Data", 
                     key="central_preview_btn", 
                     on_click=set_data_to_preview, 
                     args=['central_data'] # Pass the key for the data
@@ -161,7 +170,7 @@ with st.sidebar:
     st.markdown("---") 
     
     # Section 2: Embase data
-    st.subheader("Embase (Ovid)")
+    st.subheader("Embase")
     uploaded_embase_ris = st.file_uploader(
         "Choose your RIS file(s)...",
         type=["ris"],
@@ -256,39 +265,10 @@ with st.sidebar:
                 on_click=set_data_to_preview, 
                 args=['scanmedicine_data']
             )
-    with tab2:
-        
-        
-        source_key = st.session_state.data_to_display
-        
-        if source_key is not None and st.session_state.get(source_key) is not None:
-            data_source_name = ""
-            if source_key == 'central_data':
-                data_source_name = "Cochrane Central"
-            elif source_key == 'embase_data':
-                data_source_name = "Embase"
-            elif source_key == 'ct_data':
-                data_source_name = "ClinicalTrials.gov"
-            elif source_key == 'ictrp_data':
-                data_source_name = "WHO ICTRP"
-            elif source_key == 'scanmedicine_data':
-                data_source_name = "ScanMedicine"
-        
-            st.header(f"Previewing Data from: **{data_source_name}**")
-            data_to_show = st.session_state[source_key]
-            data_to_show.insert(0, 'No.', range(1, len(data_to_show) + 1))
-            st.dataframe(data_to_show.iloc[:100], hide_index=True)
-            
-            
-            st.button("Clear Preview", on_click=clear_preview, key="hide_preview_btn")
-        elif source_key is not None and st.session_state.get(source_key) is None:
-            st.warning("No parsed data available to preview for the selected source.")
-            
-            st.session_state.data_to_display = None
-        else:
-            st.info("Upload your data in the sidebar and click a 'Preview Data' button to see the data here.")
+    
+    
 
- 
+    
     with tab3:
         # Central data and ids
         if 'Central_IDs' in st.session_state:
@@ -359,22 +339,22 @@ with st.sidebar:
             scanmedicine = None
         dfs = []
         if isinstance(central, pd.DataFrame):
-            central_subset = central[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number', 'Source','Volume','Issue']]
+            central_subset = central[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number', 'Source','Volume','Issue','DOI']]
             # central_subset = central_subset.rename(columns={'Author': 'Trial_ID'})
             central_subset['Trial_ID'] = central['Author'].str.strip()
             central_subset['Database'] = 'CENTRAL'
-            central_subset['Source_Code'] = 1
-            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'Database','Source_Code']
+            central_subset['Source_Code'] = 3
+            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'DOI', 'Database','Source_Code']
             central_subset = central_subset[new_order]
             dfs.append (central_subset)  
 
         if isinstance(embase, pd.DataFrame):
-            embase_subset = embase[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number', 'Source','Volume','Issue']]
+            embase_subset = embase[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number', 'Source','Volume','Issue','DOI']]
             # embase_subset = embase_subset.rename(columns={'Acession_Number': 'Trial_ID'})
             embase_subset['Trial_ID'] = embase['Acession_Number'].str.strip()
             embase_subset['Database'] = 'EMBASE'
-            embase_subset['Source_Code'] = 2
-            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'Database','Source_Code']
+            embase_subset['Source_Code'] = 4
+            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','DOI', 'Database','Source_Code']
             embase_subset = embase_subset[new_order]
             # st.write(embase_subset)
             dfs.append (embase_subset)
@@ -395,11 +375,12 @@ with st.sidebar:
             ct_subset = ct_subset.rename(columns={'NCT Number': 'Trial_ID', 'Study Title': 'Title', "Brief Summary":'Abstract','First Posted':'Year', 'Study URL':'URL'})
             ct_subset['Year'] = ct_subset['Year'].str.extract(r'(^[0-9]{4})')
             ct_subset['Database'] = 'ClinicalTrialsGov'
-            ct_subset['Source_Code'] = 3
+            ct_subset['Source_Code'] = 1
             ct_subset['Source'] = "ClinicalTrials.gov"
             ct_subset['Volume'] = ""
             ct_subset['Issue'] = ""
-            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'Database','Source_Code']
+            ct_subset['DOI'] = ""
+            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'DOI', 'Database','Source_Code']
             ct_subset = ct_subset[new_order]
             # st.write(ct_subset)
             dfs.append (ct_subset)
@@ -415,7 +396,9 @@ with st.sidebar:
                 else:
                     ictrp_subset[tag] = ""
             ictrp_subset['Abstract'] = 'INTERVENTION: '+ ictrp_subset['Intervention'].fillna('').astype(str) + ' CONDITION: ' + ictrp_subset['Condition'].fillna('').astype(str) + " PRIMARY OUTCOME: " + ictrp_subset['Primary_outcome'].fillna('').astype(str) + " SECONDARY OUTCOME: " + ictrp_subset['Secondary_outcome'].fillna('').astype(str) + " INCLUSION CRITERIA: " + ictrp_subset['Inclusion_Criteria'].fillna('').astype(str)
+            ictrp_subset['Abstract'] = ictrp_subset['Abstract'].apply (html_clean)
             ictrp_subset['Note'] = "Scientific title: " + ictrp_subset["Scientific_title"].fillna('').astype(str) + " Recruitment_Status:" +  ictrp_subset["Recruitment_Status"].fillna('').astype(str) + " Country: " + ictrp_subset["Countries"].fillna('').astype(str)
+            ictrp_subset['Note'] = ictrp_subset['Note'].apply (html_clean)
             ictrp_subset['Keywords'] = ""
             ictrp_subset['Acession_Number'] = ictrp_subset['Internal_Number']
             ictrp_subset = ictrp_subset.rename(columns={'TrialID': 'Trial_ID', 'Public_title': 'Title', 'Date_registration':'Year', 'web_address':'URL'})
@@ -424,8 +407,9 @@ with st.sidebar:
             ictrp_subset['Source'] = "WHO ICTRP"
             ictrp_subset['Volume'] = ""
             ictrp_subset['Issue'] = ""
-            ictrp_subset['Source_Code'] = 4
-            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number', 'Volume','Issue', 'Database','Source_Code']
+            ictrp_subset['DOI'] = ""
+            ictrp_subset['Source_Code'] = 2
+            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number', 'Volume','Issue', 'DOI', 'Database','Source_Code']
             ictrp_subset = ictrp_subset[new_order]
             dfs.append (ictrp_subset)
 
@@ -451,8 +435,9 @@ with st.sidebar:
             scanmedicine_subset['Source'] = 'ScanMedicine'
             scanmedicine_subset['Volume'] = ""
             scanmedicine_subset['Issue'] = ""
+            scanmedicine_subset['DOI'] = ""
             scanmedicine_subset['Source_Code'] = 5
-            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'Database','Source_Code']
+            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'DOI', 'Database','Source_Code']
             scanmedicine_subset = scanmedicine_subset[new_order]
             dfs.append(scanmedicine_subset)
 
@@ -462,7 +447,7 @@ with st.sidebar:
             combined_df = pd.concat(dfs, ignore_index=True)
             sorted_df = combined_df.sort_values(by=['Trial_ID', 'Source_Code'],ascending=[True, True]).reset_index(drop=True)
             sorted_df['Status'] = np.where(sorted_df.groupby('Trial_ID').cumcount() == 0,  'Master', 'Duplicate')
-            sorted_df_new_order = ["Status", "Database", "Trial_ID", "Author", "Title", "Source", "Year", "URL", "Abstract", "Keywords", "Note", "Acession_Number", "Volume", "Issue", "Source_Code"]
+            sorted_df_new_order = ["Status", "Database", "Trial_ID", "Author", "Title", "Source", "Year", "URL", "Abstract", "Keywords", "Note", "Acession_Number", "Volume", "Issue", "DOI", "Source_Code"]
             sorted_df = sorted_df[sorted_df_new_order]
             def color_priority(row):
                 if row['Status'] == 'Master':
@@ -520,7 +505,7 @@ with st.sidebar:
             edited_df = st.data_editor(
                     duplicate_mask_df,
                     column_config={"Select": st.column_config.CheckboxColumn(required=True)},
-                    disabled=["Status", "Database", "Trial_ID", "Author", "Title", "Source", "Year", "URL", "Abstract", "Keywords", "Note", "Acession_Number", "Volume", "Issue", "Source_Code"],
+                    disabled=["Status", "Database", "Trial_ID", "Author", "Title", "Source", "Year", "URL", "Abstract", "Keywords", "Note", "Acession_Number", "Volume", "Issue", "DOI", "Source_Code"],
                     hide_index=True)
             
             st.session_state['edited_df'] = edited_df
@@ -542,7 +527,7 @@ with st.sidebar:
     st.session_state['master_ids'] is not None and 
     st.session_state['master_records_df'] is not None):
             with st.expander ("Data Summary and Export Guide"):
-                st.caption ('''**Data Summary**: This table shows the total number of Master and Duplicate records for each source. Note: For Cochrane CENTRAL and Embase, these figures reflect only Trial Registry records.\n\n**Export Data**: Download the cleaned Master files and identified Duplicates in both CSV and RIS formats.\nNote: The Master files for Cochrane CENTRAL and Embase include both unique trial registry records and records from non-registry sources. De-duplication is only applied to the Trial Registry Records within these databases. ''')
+                st.caption ('''**Data Summary**: This table shows the total number of Master and Duplicate records for each source. Note: For Cochrane CENTRAL and Embase, these figures reflect only Trial Registry records.\n\n**Export Data**: Download the cleaned Master files and identified Duplicates in both RIS and CSV formats. You can download them as a single combined file or separately by source.\nNote: The Master files for Cochrane CENTRAL and Embase include both unique trial registry records and records from non-registry sources. De-duplication is only applied to the Trial Registry Records within these databases. ''')
             master_ids = st.session_state['master_ids']
             master_records_df = st.session_state['master_records_df']
             sorted_df_manual = st.session_state['sorted_df_manual']
@@ -560,19 +545,55 @@ with st.sidebar:
                 )
                 st.markdown("---")  
                 st.subheader("Export Data")
+
+                csv_col1, ris_col1, csv_col2, ris_col2 = st.columns(4)
+                csv_master_data_all = convert_df_to_csv(master_records_df)
+                ris_master_data_all = convert_df_to_ris (master_records_df)
+                csv_dup_data_all= convert_df_to_csv(duplicate_records_df)
+                ris_dup_data_all = convert_df_to_ris (duplicate_records_df)
+                with csv_col1:
+                    st.download_button(
+                        label="All Master.csv",
+                        data=csv_master_data_all,
+                        file_name='All_Master_Records.csv',
+                        mime='text/csv',
+                        key=f'csv_download_{"All_Master_Records.csv"}')
+                with ris_col1:
+                    st.download_button(
+                        label="All Master.ris",
+                        data=ris_master_data_all,
+                        file_name='All_Master_Records.ris',
+                        mime='text/RIS',
+                        key=f'ris_download_{"All_Master_Records.ris"}')    
+                with csv_col2:
+                    st.download_button(
+                        label="All Duplicates.csv",
+                        data=csv_dup_data_all,
+                        file_name='All_Duplicate_Records.csv"',
+                        mime='text/csv',
+                        key=f'csv_download_{"All_Duplicate_Records.csv"}')
+                with ris_col2:
+                    st.download_button(
+                        label="All Duplicates.ris",
+                        data=ris_dup_data_all,
+                        file_name='All_Duplicate_Records.ris',
+                        mime='text/RIS',
+                        key=f'ris_download_{"All_Duplicate_Records.ris"}')
+
                 
                 for database in summary_table.index:
                     st.write(database)
                     data_to_export = master_records_df[master_records_df['Database'] == database]
+                    
                     data_to_export_dup = duplicate_records_df[duplicate_records_df['Database'] == database]
                     col1, col2, col3, col4 = st.columns(4)
                     if database == 'CENTRAL':
                         if isinstance(central_non_trials_df, pd.DataFrame):
-                            central_non_trials_df_subset = central_non_trials_df[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Source']]
+                            central_non_trials_df_subset = central_non_trials_df[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Source', 'DOI']]
                             central_non_trials_df_subset['Trial_ID'] = ''
                             central_non_trials_df_subset['Database'] = 'CENTRAL'
-                            central_non_trials_df_subset['Source_Code'] = 1
-                            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Database','Source_Code']
+                            central_non_trials_df_subset['Source_Code'] = 3
+                            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'DOI', 'Database','Source_Code']
                             central_non_trials_df_subset = central_non_trials_df_subset[new_order]
                             data_to_export_central = pd.concat([data_to_export, central_non_trials_df_subset], ignore_index=True)
                             csv_data = convert_df_to_csv(data_to_export_central)
@@ -587,18 +608,22 @@ with st.sidebar:
     
                     elif database == 'EMBASE':
                         if isinstance(embase_non_trials_df, pd.DataFrame):
-                            embase_non_trials_df_subset = embase_non_trials_df[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Source']]
+                            embase_non_trials_df_subset = embase_non_trials_df[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Source', 'DOI']]
                             embase_non_trials_df_subset['Trial_ID'] = ''
                             embase_non_trials_df_subset['Database'] = 'EMBASE'
-                            embase_non_trials_df_subset['Source_Code'] = 3
-                            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Database','Source_Code']
+                            embase_non_trials_df_subset['Source_Code'] = 4
+                            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'DOI', 'Database','Source_Code']
                             embase_non_trials_df_subset = embase_non_trials_df_subset[new_order]
+                            data_to_export['Author'] = data_to_export['Trial_ID']
+                            data_to_export_dup ['Author'] = data_to_export_dup ['Trial_ID']
                             data_to_export_embase = pd.concat([data_to_export, embase_non_trials_df_subset], ignore_index=True)
                             csv_data = convert_df_to_csv(data_to_export_embase)
                             ris_data = convert_df_to_ris(data_to_export) + convert_non_trial_df_to_ris (embase_non_trials_df_subset)
                             csv_data_dup = convert_df_to_csv(data_to_export_dup)
                             ris_data_dup = convert_df_to_ris (data_to_export_dup)
                         else:
+                            data_to_export['Author'] = data_to_export['Trial_ID']
+                            data_to_export_dup ['Author'] = data_to_export_dup ['Trial_ID']
                             csv_data = convert_df_to_csv(data_to_export)
                             ris_data = convert_df_to_ris(data_to_export)
                             csv_data_dup = convert_df_to_csv(data_to_export_dup)
@@ -650,7 +675,7 @@ with st.sidebar:
         else: 
             if isinstance(sorted_df, pd.DataFrame):
                 with st.expander ("Data Summary and Export Guide"):
-                    st.caption ('''**Data Summary**: This table shows the total number of Master and Duplicate records for each source. Note: For Cochrane CENTRAL and Embase, these figures reflect only Trial Registry records.\n\n**Export Data**: Download the cleaned Master files and identified Duplicates in both RIS and CSV formats.\nNote: The Master files for Cochrane CENTRAL and Embase include both unique trial registry records and records from non-registry sources. De-duplication is only applied to the Trial Registry records within these databases. ''')
+                    st.caption ('''**Data Summary**: This table shows the total number of Master and Duplicate records for each source. Note: For Cochrane CENTRAL and Embase, these figures reflect only Trial Registry records.\n\n**Export Data**: Download the cleaned Master files and identified Duplicates in both RIS and CSV formats. You can download them as a single combined file or separately by source.\nNote: The Master files for Cochrane CENTRAL and Embase include both unique trial registry records and records from non-registry sources. De-duplication is only applied to the Trial Registry records within these databases. ''')
                 st.subheader("Data Summary")
                 summary_table = pd.pivot_table(sorted_df, 
                                              index='Database',
@@ -665,22 +690,54 @@ with st.sidebar:
                 master_ids = sorted_df[sorted_df['Status'] == 'Master']['Trial_ID'].unique()
                 duplicate_ids = sorted_df[sorted_df['Status'] == 'Duplicate']['Trial_ID']
                 master_records_df = sorted_df[sorted_df['Status'] == 'Master']
-                duplicate_records_df = sorted_df[sorted_df['Status'] == 'Duplicate']
+                duplicate_records_df = sorted_df[sorted_df['Status'] == 'Duplicate']               
+                csv_col1, ris_col1, csv_col2, ris_col2 = st.columns(4)
+                csv_master_data_all = convert_df_to_csv(master_records_df)
+                ris_master_data_all = convert_df_to_ris (master_records_df)
+                csv_dup_data_all= convert_df_to_csv(duplicate_records_df)
+                ris_dup_data_all = convert_df_to_ris (duplicate_records_df)
+                with csv_col1:
+                    st.download_button(
+                        label="All Master.csv",
+                        data=csv_master_data_all,
+                        file_name='All_Master_Records.csv',
+                        mime='text/csv',
+                        key=f'csv_download_{"All_Master_Records.csv"}')
+                with ris_col1:
+                    st.download_button(
+                        label="All Master.ris",
+                        data=ris_master_data_all,
+                        file_name='All_Master_Records.ris',
+                        mime='text/RIS',
+                        key=f'ris_download_{"All_Master_Records.ris"}')    
+                with csv_col2:
+                    st.download_button(
+                        label="All Duplicates.csv",
+                        data=csv_dup_data_all,
+                        file_name='All_Duplicate_Records.csv"',
+                        mime='text/csv',
+                        key=f'csv_download_{"All_Duplicate_Records.csv"}')
+                with ris_col2:
+                    st.download_button(
+                        label="All Duplicates.ris",
+                        data=ris_dup_data_all,
+                        file_name='All_Duplicate_Records.ris',
+                        mime='text/RIS',
+                        key=f'ris_download_{"All_Duplicate_Records.ris"}')
+                
                 
                 for database in summary_table.index:
                     data_to_export = master_records_df[master_records_df['Database'] == database]
                     data_to_export_dup = duplicate_records_df[duplicate_records_df['Database'] == database]
                     st.markdown(f"**{database}**")
-                    
-                    
 
                     if database == 'CENTRAL':
                         if isinstance(central_non_trials_df, pd.DataFrame):
-                            central_non_trials_df_subset = central_non_trials_df[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'Source']]
+                            central_non_trials_df_subset = central_non_trials_df[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'Source', 'DOI']]
                             central_non_trials_df_subset['Trial_ID'] = ''
                             central_non_trials_df_subset['Database'] = 'CENTRAL'
-                            central_non_trials_df_subset['Source_Code'] = 1
-                            new_order = ['Trial_ID','Author', 'Title', 'Source','Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Database','Source_Code']
+                            central_non_trials_df_subset['Source_Code'] = 3
+                            new_order = ['Trial_ID','Author', 'Title', 'Source','Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'DOI', 'Database','Source_Code']
                             central_non_trials_df_subset = central_non_trials_df_subset[new_order]
                             data_to_export_central = pd.concat([data_to_export, central_non_trials_df_subset], ignore_index=True)
                             csv_data = convert_df_to_csv(data_to_export_central)
@@ -694,18 +751,22 @@ with st.sidebar:
                             ris_data_dup = convert_df_to_ris (data_to_export_dup)
                     elif database == 'EMBASE':
                         if isinstance(embase_non_trials_df, pd.DataFrame):
-                            embase_non_trials_df_subset = embase_non_trials_df[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Source']]
+                            embase_non_trials_df_subset = embase_non_trials_df[['Author', 'Title', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Source', 'DOI']]
                             embase_non_trials_df_subset['Trial_ID'] = ''
                             embase_non_trials_df_subset['Database'] = 'EMBASE'
-                            embase_non_trials_df_subset['Source_Code'] = 3
-                            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue','Database','Source_Code']
+                            embase_non_trials_df_subset['Source_Code'] = 4
+                            new_order = ['Trial_ID','Author', 'Title', 'Source', 'Year', 'URL', 'Abstract','Keywords', 'Note', 'Acession_Number','Volume','Issue', 'DOI', 'Database','Source_Code']
                             embase_non_trials_df_subset = embase_non_trials_df_subset[new_order]
+                            data_to_export['Author'] = data_to_export['Trial_ID']
+                            data_to_export_dup ['Author'] = data_to_export_dup ['Trial_ID']
                             data_to_export_embase = pd.concat([data_to_export, embase_non_trials_df_subset], ignore_index=True)
                             csv_data = convert_df_to_csv(data_to_export_embase)
                             ris_data = convert_df_to_ris(data_to_export) + convert_non_trial_df_to_ris (embase_non_trials_df_subset)
                             csv_data_dup = convert_df_to_csv(data_to_export_dup)
                             ris_data_dup = convert_df_to_ris (data_to_export_dup)
                         else:
+                            data_to_export['Author'] = data_to_export['Trial_ID']
+                            data_to_export_dup ['Author'] = data_to_export_dup ['Trial_ID']
                             csv_data = convert_df_to_csv(data_to_export)
                             ris_data = convert_df_to_ris(data_to_export)
                             csv_data_dup = convert_df_to_csv(data_to_export_dup)
@@ -755,8 +816,40 @@ with st.sidebar:
                             mime='text/RIS',
                             key=f'ris_download_d{database}'
                         )
-            
-
+                    
+with tab2:        
+    source_key = st.session_state.data_to_display
+    if source_key is not None and st.session_state.get(source_key) is not None:
+        data_source_name = ""
+        if source_key == 'central_data':
+            data_source_name = "Cochrane CENTRAL"
+        elif source_key == 'embase_data':
+            data_source_name = "Embase"
+        elif source_key == 'ct_data':
+            data_source_name = "ClinicalTrials.gov"
+        elif source_key == 'ictrp_data':
+            data_source_name = "WHO ICTRP"
+        elif source_key == 'scanmedicine_data':
+            data_source_name = "ScanMedicine"
+    
+        st.header(f"Previewing Data from: **{data_source_name}**")
+        data_to_show = st.session_state[source_key].copy()
+        # data_to_show = st.session_state[source_key]
+        if 'No.' in data_to_show.columns:
+            data_to_show = data_to_show.drop(columns=['No.'])
+            # data_to_show.insert(0, 'No.', range(1, len(data_to_show) + 1))
+        # data_to_show.insert(0, 'No.', range(1, len(data_to_show) + 1))
+        data_to_show.insert(0, 'No.', range(1, len(data_to_show) + 1))
+        st.dataframe(data_to_show.iloc[:100], hide_index=True)
+        
+        
+        st.button("Clear Preview", on_click=clear_preview, key="hide_preview_btn")
+    elif source_key is not None and st.session_state.get(source_key) is None:
+        st.warning("No parsed data available to preview for the selected source.")
+        
+        st.session_state.data_to_display = None
+    else:
+        st.info("Upload your data in the sidebar and click a 'Preview Data' button to see the data here.")
 
 
 

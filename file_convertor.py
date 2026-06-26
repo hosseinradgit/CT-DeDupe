@@ -9,7 +9,7 @@ def convert_df_to_csv(df):
 def convert_df_to_ris(df):
     ris_content = ""
     for index, row in df.iterrows():
-        ris_content += "TY  - JOUR\n"
+        ris_content += "TY  - GEN\n"
         mapping = {
             "DB": "Database",
             "AN": "Acession_Number",
@@ -19,6 +19,7 @@ def convert_df_to_ris(df):
             "PY": "Year",
             "N2": "Abstract",
             "KW": "Keywords",
+            "DO": "DOI",
             "UR": "URL",
             "N1": "Note"
         }
@@ -44,6 +45,7 @@ def convert_non_trial_df_to_ris(df):
         "IS": "Issue",
         "N2": "Abstract",
         "KW": "Keywords",
+        "DO": "DOI",
         "UR": "URL",
         "N1": "Note"
     }
