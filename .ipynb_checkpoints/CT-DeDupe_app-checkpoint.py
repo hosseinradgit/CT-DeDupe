@@ -34,7 +34,7 @@ with tab1:
     **Data Preview**: The Data Preview tab allows you to verify that your files have been correctly read by the tool. To use this feature, after uploading your data, click the 'Preview [Source Name]' button located under the respective source and navigate to the 'Data Preview' tab. Your data will be displayed in a tabular format for easy inspection. To ensure optimal speed and memory performance, this preview is limited to the first 100 records per source. Once you have finished verifying your data, you can click 'Clear Preview Data' to reset the view.
 
     **Auto-Deduplication**: The Auto De-duplication tab identifies duplicate records based on their Trial ID. This process is automatic and requires no user action. However, you can verify the results in the table provided. In this view, each record is assigned a status: 'Master' (highlighted in green) or 'Duplicate' (highlighted in red). The 'Database' column indicates the specific source of each record.
-    To ensure you get the most up-to-date data, the tool chooses the Master records using a priority order from highest to lowest: ClinicalTrials.gov, WHO-ICTRP, Cochrane CENTRAL, Embase, and ScanMedicine.
+    To ensure you get the most complete and up-to-date data for each record, the tool chooses the Master records using the following order of priority: ClinicalTrials.gov, WHO-ICTRP, Cochrane CENTRAL, Embase, and ScanMedicine.
     For efficiency, the preview displays up to 100 records. For full transparency, you can review these samples or download the complete dataset to verify all results. 
     
     **Manual-Deduplication**: Based on all uploaded data, the tool identifies potential matches using Titles (Public Titles) and Years. In this tab, you can manually review these records to identify further duplicates. For each identified pair, you must consider one record as the 'Master' and mark the others as duplicates for removal. If no duplicates are found within a pair, the records can be left as they are. To simplify this process, the table pre-highlights one record in green and its potential duplicate in red. You need to select which records to remove from the collection. Once you have made your selections, click the 'Remove Checked Records' button below the table.
@@ -61,7 +61,7 @@ with tab1:
     #### How to cite: 
     If you use this tool, please cite it as follows:
     
-    Dehdarirad, Hossein (2026). CT-DeDupe: An Automated, Free Tool for Clinical Trial Deduplication. https://clinicaltrialsdeduplicator.streamlit.app/
+    Dehdarirad, Hossein (2026). CT-DeDupe: An Automated, Free Tool for Clinical Trial Deduplication (Version 1.2.0). https://clinicaltrialsdeduplicator.streamlit.app/
     
     """) 
 with st.sidebar.expander("**Tool Updates**", expanded=False):
